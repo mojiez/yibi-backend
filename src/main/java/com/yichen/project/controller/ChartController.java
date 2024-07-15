@@ -10,28 +10,32 @@ import com.yichen.project.common.DeleteRequest;
 import com.yichen.project.common.ErrorCode;
 import com.yichen.project.common.ResultUtils;
 import com.yichen.project.constant.CommonConstant;
+import com.yichen.project.constant.FileConstant;
 import com.yichen.project.constant.UserConstant;
 import com.yichen.project.exception.BusinessException;
 import com.yichen.project.exception.ThrowUtils;
-import com.yichen.project.model.dto.chart.ChartAddRequest;
-import com.yichen.project.model.dto.chart.ChartEditRequest;
-import com.yichen.project.model.dto.chart.ChartQueryRequest;
-import com.yichen.project.model.dto.chart.ChartUpdateRequest;
+import com.yichen.project.model.dto.chart.*;
+import com.yichen.project.model.dto.file.UploadFileRequest;
 import com.yichen.project.model.dto.post.PostQueryRequest;
 import com.yichen.project.model.entity.Chart;
 import com.yichen.project.model.entity.Post;
 import com.yichen.project.model.entity.User;
+import com.yichen.project.model.enums.FileUploadBizEnum;
 import com.yichen.project.service.ChartService;
 import com.yichen.project.service.UserService;
+import com.yichen.project.utils.ExcelUtils;
 import com.yichen.project.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
 import java.util.List;
 
 /**
@@ -244,6 +248,7 @@ public class ChartController {
         }
 
         Long id = chartQueryRequest.getId();
+        String name = chartQueryRequest.getName();
         String goal = chartQueryRequest.getGoal();
         String chartType = chartQueryRequest.getChartType();
         long userId = chartQueryRequest.getUserId();
@@ -253,10 +258,69 @@ public class ChartController {
         // 拼接查询条件
         queryWrapper.eq(id!=null&&id>0, "id",id);
         queryWrapper.eq(StringUtils.isNotBlank(goal),"goal",goal);
+        queryWrapper.like(StringUtils.isNotBlank(name),"name",name);
         queryWrapper.eq(StringUtils.isNotBlank(chartType),"chartType",chartType);
         queryWrapper.eq(userId>0,"userId",userId);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
+    }
+
+    /**
+     * 智能分析
+     *
+     * @param multipartFile
+     * @param genChartByAIRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/gen")
+    public BaseResponse<String> genChartByAI(@RequestPart("file") MultipartFile multipartFile,
+                                             GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
+
+        String name = genChartByAIRequest.getName();
+        String goal = genChartByAIRequest.getGoal();
+        String chartType = genChartByAIRequest.getChartType();
+
+        // 校验
+        ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标为空");
+        ThrowUtils.throwIf(StringUtils.isBlank(name),ErrorCode.PARAMS_ERROR,"名称为空");
+        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length()>100,ErrorCode.PARAMS_ERROR,"名称过长");
+
+        // 拼接用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("你是一个数据分析师，接下来我会告诉你我的分析目标和原始数据，请告诉我你的分析结论。").append("\n");
+        userInput.append("分析目标: ").append(goal).append("\n");
+
+        // 得到压缩后的数据
+        String result = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append("数据: ").append(result).append("\n");
+        return ResultUtils.success(userInput.toString());
+//        // 读取用户上传的文件并处理
+//        User loginUser = userService.getLoginUser(request);
+//        // 文件目录：根据业务、用户来划分
+//        String uuid = RandomStringUtils.randomAlphanumeric(8);
+//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
+////        String filepath = StringΩring.format("/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+//        File file = null;
+//        try {
+//            // 上传文件
+////            file = File.createTempFile(filepath, null);
+////            multipartFile.transferTo(file);
+////            cosManager.putObject(filepath, file);
+//            // 返回可访问地址
+//            return ResultUtils.success("1");
+//        } catch (Exception e) {
+//            log.error("file upload error, filepath = ");
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+//        } finally {
+//            if (file != null) {
+//                // 删除临时文件
+//                boolean delete = file.delete();
+//                if (!delete) {
+//                    log.error("file delete error, filepath = {}");
+//                }
+//            }
+//        }
     }
 }

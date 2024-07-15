@@ -35,6 +35,11 @@ public class Chart implements Serializable {
     private String chartType;
 
     /**
+     * 图表名称
+     */
+    private String name;
+
+    /**
      * 生成的图表数据
      */
     private String genChart;

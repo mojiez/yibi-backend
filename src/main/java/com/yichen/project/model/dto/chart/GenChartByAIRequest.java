@@ -3,40 +3,28 @@ package com.yichen.project.model.dto.chart;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
- * 更新请求
+ * 文件上传请求
  *
  * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
  * @from <a href="https://yupi.icu">编程导航知识星球</a>
  */
 @Data
-public class ChartUpdateRequest implements Serializable {
-
-    /**
-     * id
-     */
-    private Long id;
-
+public class GenChartByAIRequest implements Serializable {
     /**
      * 图表名称
      */
     private String name;
-    /**
-     * 标题
-     */
-    private String title;
 
     /**
-     * 内容
+     * 分析目标
      */
-    private String content;
+    private String goal;
 
     /**
-     * 标签列表
+     * 图表类型
      */
-    private List<String> tags;
-
+    private String chartType;
     private static final long serialVersionUID = 1L;
 }
