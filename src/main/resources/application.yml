@@ -102,3 +102,9 @@ knife4j:
         api-rule-resources:
           - com.yichen.project.controller
     concat: UneasyDrinker
+
+# 鱼聪明AI配置
+yuapi:
+  client:
+    access-key: joe5bc5y0q154wwft55tdcq1dpdf6imo
+    secret-key: ehxhodgq9skv80bqfju2m6tvovyj8tsk
