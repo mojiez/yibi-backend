@@ -23,4 +23,9 @@
         chartType,genChart,genResult,
         createTime,updateTime,isDelete
     </sql>
+
+<!--    实现原始数据单独一个表-->
+    <select id="queryChartData" parameterType="string" resultType="map">
+        ${querySql}
+    </select>
 </mapper>

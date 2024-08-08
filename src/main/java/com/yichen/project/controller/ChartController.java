@@ -1,6 +1,7 @@
 package com.yichen.project.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,6 +16,7 @@ import com.yichen.project.constant.UserConstant;
 import com.yichen.project.exception.BusinessException;
 import com.yichen.project.exception.ThrowUtils;
 import com.yichen.project.manager.AIManager;
+import com.yichen.project.manager.RedisLimiterManager;
 import com.yichen.project.model.dto.chart.*;
 import com.yichen.project.model.dto.file.UploadFileRequest;
 import com.yichen.project.model.dto.post.PostQueryRequest;
@@ -38,6 +40,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -50,6 +53,8 @@ import java.util.List;
 @RequestMapping("/chart")
 @Slf4j
 public class ChartController {
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
     @Resource
     private AIManager aiManager;
     @Resource
@@ -290,6 +295,30 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(name),ErrorCode.PARAMS_ERROR,"名称为空");
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length()>100,ErrorCode.PARAMS_ERROR,"名称过长");
 
+        // 校验文件
+        // 拿到用户请求的文件
+        // 取到原始文件大小
+        long size = multipartFile.getSize();
+        // 取到原始文件名
+        String originalFilename = multipartFile.getOriginalFilename();
+        // 定义一个常量表示 1MB
+        final long ONE_MB = 1024 * 1024L;
+        // 如果文件太大 大于1MB 则抛出异常
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过1MB");
+
+        // 校验文件后缀
+        /**
+         * 利用FileUtils工具类来获取文件后缀
+         */
+        String suffix = FileUtil.getSuffix(originalFilename);
+        // 定义合法的后缀列表
+        final List<String> validSuffixList = Arrays.asList("xlsx","jpg");
+        // 如果后缀不是规定的，抛出异常
+        ThrowUtils.throwIf(!validSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀错误");
+
+        // 限流判断 每个用户，对于每种方法的限流
+        User loginUser = userService.getLoginUser(request);
+        redisLimiterManager.doRateLimit("genChartByAI_"+loginUser.getId());
         // 拼接用户输入
         // 指定图表类型
         if (StringUtils.isNotBlank(chartType)) {
@@ -318,7 +347,7 @@ public class ChartController {
         chart.setName(name);
         chart.setGenChart(genChart);
         chart.setGenResult(genResult);
-        User loginUser = userService.getLoginUser(request);
+
         chart.setUserId(loginUser.getId());
 
         // 保存到数据库中
